@@ -1,7 +1,7 @@
 import Foundation
 
 public enum StickyCopy {
-    public static let caption = "条长是剩余天数，填充是已用比例"
+    public static let caption = "条长是本周期剩余，填充是剩余用量"
     public static let notConnected = "未接入"
     public static let loading = "读取中"
     public static let signedOut = "未登录"
@@ -15,13 +15,14 @@ public enum StickyCopy {
 public enum StickyRoster {
     public static let cursor = "Cursor"
     public static let grok = "Grok"
+    public static let grokBot = "Grok Bot"
     public static let pending: [(name: String, reason: String)] = [
+        (grok, StickyCopy.notConnected),
         ("Mimo", StickyCopy.notConnected),
-        ("Grok Bot", StickyCopy.notConnected),
     ]
 
     public static var names: [String] {
-        [cursor, grok] + pending.map(\.name)
+        [cursor] + pending.map(\.name) + [grokBot]
     }
 }
 
@@ -40,9 +41,10 @@ public struct VendorSnapshot: Identifiable, Equatable, Sendable {
         /// Name stays visible. The reason replaces the percent, and there is no bar.
         case unavailable(reason: String)
         /// `percent` is the rounded remaining percent, 0...100.
-        /// `fill` is remaining/limit clamped to 0...1.
-        /// `resetDays` is clamped at 0.
-        case usage(percent: Int, fill: Double, resetDays: Int)
+        /// `fill` is that remaining percent as a 0...1 fraction.
+        /// `barLength` is how much of the real cycle is left, 0...1.
+        /// `resetDays` is whole days until the cycle end, clamped at 0.
+        case usage(percent: Int, fill: Double, resetDays: Int, barLength: Double)
     }
 
     public static func unavailable(name: String, reason: String) -> VendorSnapshot {

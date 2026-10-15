@@ -118,8 +118,8 @@ struct CursorUsageProvider: UsageProvider {
     }
 }
 
-struct GrokUsageProvider: UsageProvider {
-    var vendorName: String { StickyRoster.grok }
+struct GrokBotUsageProvider: UsageProvider {
+    var vendorName: String { StickyRoster.grokBot }
     var cookieReader: @Sendable () throws -> String
     var session: URLSession
 
@@ -163,14 +163,21 @@ private func loadDashboard(
     do {
         let data = try await DashboardRequest.fetch(url: endpoint, cookieLine: cookieLine, session: session)
         let reading = try decode(data)
-        let fraction = min(1, max(0, reading.usedPercent / 100))
+        let remaining = UsageMath.remainingPercent(usedPercent: reading.usedPercent)
+        let fraction = remaining / 100
         let days = UsageMath.resetDays(cycleEnd: reading.cycleEnd, now: now)
+        let barLength = UsageMath.cycleRemainingFraction(
+            start: reading.cycleStart,
+            end: reading.cycleEnd,
+            now: now
+        )
         return VendorSnapshot(
             name: vendorName,
             kind: .usage(
                 percent: UsageMath.percentPoints(fraction: fraction),
                 fill: fraction,
-                resetDays: days
+                resetDays: days,
+                barLength: barLength
             )
         )
     } catch is CancellationError {

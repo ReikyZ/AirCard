@@ -16,15 +16,18 @@ public enum UsageMath {
         return Int((clamped * 100).rounded(.toNearestOrAwayFromZero))
     }
 
-    /// Days until `cycleEnd`, rounded up. A partial day still counts as one day.
+    /// Remaining percent after a used percent on the 0...100 scale.
+    public static func remainingPercent(usedPercent: Double) -> Double {
+        guard usedPercent.isFinite else { return 0 }
+        return min(100, max(0, 100 - usedPercent))
+    }
+
+    /// Whole days until `cycleEnd`. A partial day does not count.
     /// Results at or before `now` clamp to 0, which the note shows as「今天」.
-    ///
-    /// Current X Subscription pools refresh weekly, and `billingCycleEnd` can be
-    /// the billing date rather than the weekly usage reset. Use `billingCycleEnd` for now.
     public static func resetDays(cycleEnd: Date, now: Date) -> Int {
         let days = cycleEnd.timeIntervalSince(now) / 86_400
-        if days <= 0 { return 0 }
-        return Int(ceil(days - 1e-6))
+        if days <= 0 || !days.isFinite { return 0 }
+        return Int(floor(days + 1e-6))
     }
 
     public static func dayLabel(resetDays: Int) -> String {
@@ -33,9 +36,13 @@ public enum UsageMath {
         return "\(days)天"
     }
 
-    /// Bar length as a fraction of the track. 30 days is the full track; longer cycles stay full.
-    public static func barLengthFraction(resetDays: Int) -> Double {
-        Double(min(max(resetDays, 0), 30)) / 30
+    /// Bar length is how much of the real cycle is still ahead, not a fixed 30-day scale.
+    public static func cycleRemainingFraction(start: Date, end: Date, now: Date) -> Double {
+        let span = end.timeIntervalSince(start)
+        guard span > 0, span.isFinite else { return 0 }
+        let remaining = end.timeIntervalSince(now)
+        guard remaining.isFinite else { return 0 }
+        return min(1, max(0, remaining / span))
     }
 
     /// Accepts unix milliseconds, unix seconds, or ISO-8601. Millisecond values may be strings.

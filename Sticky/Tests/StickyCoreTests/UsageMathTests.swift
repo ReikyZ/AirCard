@@ -26,13 +26,22 @@ final class UsageMathTests: XCTestCase {
         XCTAssertEqual(UsageMath.remainingFraction(remaining: -4, limit: 10), 0)
     }
 
-    func testResetDaysCeilsPartialDaysAndClampsThePast() {
+    func testResetDaysCountsWholeDaysAndClampsThePast() {
         let now = Date(timeIntervalSince1970: 1_700_000_000)
         XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(3 * 86_400), now: now), 3)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(3 * 86_400 + 10), now: now), 4)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(2 * 3_600), now: now), 1)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(3 * 86_400 + 10), now: now), 3)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(2 * 3_600), now: now), 0)
         XCTAssertEqual(UsageMath.resetDays(cycleEnd: now, now: now), 0)
         XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(-86_400), now: now), 0)
+    }
+
+    func testRemainingPercentClampsUsedAmount() {
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 8.188333333333334), 91.81166666666667, accuracy: 0.000_000_1)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 0), 100)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 100), 0)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 140), 0)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: -10), 100)
+        XCTAssertEqual(UsageMath.percentPoints(fraction: UsageMath.remainingPercent(usedPercent: 8.188333333333334) / 100), 92)
     }
 
     func testDayLabels() {
@@ -43,12 +52,14 @@ final class UsageMathTests: XCTestCase {
         XCTAssertEqual(UsageMath.dayLabel(resetDays: 30), "30天")
     }
 
-    func testBarLengthUsesThirtyDaysAsFullTrack() {
-        XCTAssertEqual(UsageMath.barLengthFraction(resetDays: 0), 0)
-        XCTAssertEqual(UsageMath.barLengthFraction(resetDays: 3), 0.1, accuracy: 0.0001)
-        XCTAssertEqual(UsageMath.barLengthFraction(resetDays: 26), 26.0 / 30.0, accuracy: 0.0001)
-        XCTAssertEqual(UsageMath.barLengthFraction(resetDays: 30), 1)
-        XCTAssertEqual(UsageMath.barLengthFraction(resetDays: 45), 1)
+    func testBarLengthIsRemainingFractionOfTheCycle() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let end = start.addingTimeInterval(10 * 86_400)
+        let now = start.addingTimeInterval(4 * 86_400)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: now), 0.6, accuracy: 0.000_000_1)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: start.addingTimeInterval(-86_400)), 1)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: end.addingTimeInterval(10)), 0)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: end, end: end, now: end), 0)
     }
 
     func testEpochMillisecondsStringAndUnixSeconds() throws {
@@ -80,7 +91,7 @@ final class UsageMathTests: XCTestCase {
 
     func testRosterOrderAndCaption() {
         XCTAssertEqual(StickyRoster.names, ["Cursor", "Grok", "Mimo", "Grok Bot"])
-        XCTAssertEqual(StickyCopy.caption, "条长是剩余天数，填充是已用比例")
+        XCTAssertEqual(StickyCopy.caption, "条长是本周期剩余，填充是剩余用量")
         XCTAssertEqual(StickyCopy.notConnected, "未接入")
         XCTAssertTrue(StickyRoster.pending.allSatisfy { $0.reason == "未接入" })
     }

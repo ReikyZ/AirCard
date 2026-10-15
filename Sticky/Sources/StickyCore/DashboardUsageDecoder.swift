@@ -3,10 +3,12 @@ import Foundation
 public struct DashboardUsageReading: Equatable, Sendable {
     /// Used amount on a 0...100 scale, before display rounding.
     public var usedPercent: Double
+    public var cycleStart: Date
     public var cycleEnd: Date
 
-    public init(usedPercent: Double, cycleEnd: Date) {
+    public init(usedPercent: Double, cycleStart: Date, cycleEnd: Date) {
         self.usedPercent = usedPercent
+        self.cycleStart = cycleStart
         self.cycleEnd = cycleEnd
     }
 }
@@ -30,8 +32,8 @@ public enum UsagePercentScale {
 }
 
 public enum CursorPeriodUsageDecoder {
-    /// `planUsage.autoPercentUsed` is the used percent. Reset time is the
-    /// top-level `billingCycleEnd`.
+    /// `planUsage.autoPercentUsed` is the used percent. The cycle runs from
+    /// `billingCycleStart` to `billingCycleEnd`.
     public static func decode(_ data: Data) throws -> DashboardUsageReading {
         let json = try object(from: data)
         guard
@@ -41,15 +43,19 @@ public enum CursorPeriodUsageDecoder {
         else {
             throw DashboardUsageDecodeError.missingUsage
         }
-        guard let cycleEnd = UsageMath.parseCycleEnd(present(json["billingCycleEnd"])) else {
+        guard
+            let cycleStart = UsageMath.parseCycleEnd(present(json["billingCycleStart"])),
+            let cycleEnd = UsageMath.parseCycleEnd(present(json["billingCycleEnd"]))
+        else {
             throw DashboardUsageDecodeError.missingReset
         }
-        return DashboardUsageReading(usedPercent: usedPercent, cycleEnd: cycleEnd)
+        return DashboardUsageReading(usedPercent: usedPercent, cycleStart: cycleStart, cycleEnd: cycleEnd)
     }
 }
 
 public enum GrokSandUsageDecoder {
-    /// `usagePercent` is the used percent. Reset time is `nextResetTimestampUtc`.
+    /// Sand usage belongs on the Grok Bot row. `usagePercent` is the used percent.
+    /// The cycle runs from `currentPeriodStart` to `nextResetTimestampUtc`.
     public static func decode(_ data: Data) throws -> DashboardUsageReading {
         let json = try object(from: data)
         guard
@@ -58,10 +64,13 @@ public enum GrokSandUsageDecoder {
         else {
             throw DashboardUsageDecodeError.missingUsage
         }
-        guard let cycleEnd = UsageMath.parseCycleEnd(present(json["nextResetTimestampUtc"])) else {
+        guard
+            let cycleStart = UsageMath.parseCycleEnd(present(json["currentPeriodStart"])),
+            let cycleEnd = UsageMath.parseCycleEnd(present(json["nextResetTimestampUtc"]))
+        else {
             throw DashboardUsageDecodeError.missingReset
         }
-        return DashboardUsageReading(usedPercent: usedPercent, cycleEnd: cycleEnd)
+        return DashboardUsageReading(usedPercent: usedPercent, cycleStart: cycleStart, cycleEnd: cycleEnd)
     }
 }
 

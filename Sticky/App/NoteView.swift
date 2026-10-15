@@ -90,8 +90,8 @@ private struct VendorBlock: View {
                 Spacer(minLength: 8)
                 trailing
             }
-            if case .usage(let percent, let fill, let days) = snapshot.kind {
-                GluedDaysBar(fill: fill, resetDays: days)
+            if case .usage(let percent, let fill, let days, let barLength) = snapshot.kind {
+                GluedDaysBar(fill: fill, resetDays: days, lengthFraction: barLength)
                     .accessibilityLabel("\(snapshot.name) \(percent)% \(UsageMath.dayLabel(resetDays: days))")
             }
         }
@@ -100,7 +100,7 @@ private struct VendorBlock: View {
     @ViewBuilder
     private var trailing: some View {
         switch snapshot.kind {
-        case .usage(let percent, _, _):
+        case .usage(let percent, _, _, _):
             Text("\(percent)%")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(StickyColor.ink)
@@ -120,7 +120,7 @@ private struct VendorBlock: View {
     }
 }
 
-/// Bar length is days until reset (30 days fills the track). Fill is remaining usage.
+/// Bar length is how much of the real cycle is left. Fill is remaining usage.
 /// The day label sits on the tail of that bar, so a short bar stays short.
 private struct NoteSizeKey: PreferenceKey {
     static var defaultValue: CGSize = .zero
@@ -135,9 +135,10 @@ private struct NoteSizeKey: PreferenceKey {
 private struct GluedDaysBar: View {
     var fill: Double
     var resetDays: Int
+    var lengthFraction: Double
 
     var body: some View {
-        GluedDaysLayout(lengthFraction: UsageMath.barLengthFraction(resetDays: resetDays)) {
+        GluedDaysLayout(lengthFraction: lengthFraction) {
             TrackBar(fill: fill)
             Text(UsageMath.dayLabel(resetDays: resetDays))
                 .font(.system(size: 11, weight: .medium))
@@ -207,7 +208,10 @@ private struct PreviewUsageProvider: UsageProvider {
     let days: Int
 
     func load(now: Date) async -> VendorSnapshot {
-        VendorSnapshot(name: vendorName, kind: .usage(percent: percent, fill: fill, resetDays: days))
+        VendorSnapshot(
+            name: vendorName,
+            kind: .usage(percent: percent, fill: fill, resetDays: days, barLength: min(1, Double(max(days, 0)) / 30))
+        )
     }
 }
 
