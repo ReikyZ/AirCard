@@ -1,7 +1,6 @@
 import Foundation
 
 public enum StickyCopy {
-    public static let caption = "条长是本周期剩余，填充是剩余用量"
     public static let notConnected = "未接入"
     public static let loading = "读取中"
     public static let signedOut = "未登录"
@@ -23,6 +22,32 @@ public enum StickyRoster {
 
     public static var names: [String] {
         [cursor] + pending.map(\.name) + [grokBot]
+    }
+}
+
+public enum VendorOrder {
+    public static func arrange(_ rows: [VendorSnapshot], order: [String]) -> [VendorSnapshot] {
+        let byName = Dictionary(uniqueKeysWithValues: rows.map { ($0.name, $0) })
+        var seen = Set<String>()
+        var result: [VendorSnapshot] = []
+        for name in order {
+            guard let row = byName[name], seen.insert(name).inserted else { continue }
+            result.append(row)
+        }
+        for row in rows where seen.insert(row.name).inserted {
+            result.append(row)
+        }
+        return result
+    }
+
+    /// `index` is the slot the row should occupy after the move.
+    public static func move(_ name: String, in names: [String], to index: Int) -> [String] {
+        guard let from = names.firstIndex(of: name) else { return names }
+        var result = names
+        result.remove(at: from)
+        let destination = min(max(index, 0), result.count)
+        result.insert(name, at: destination)
+        return result
     }
 }
 

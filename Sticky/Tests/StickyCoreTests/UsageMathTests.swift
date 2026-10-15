@@ -26,13 +26,30 @@ final class UsageMathTests: XCTestCase {
         XCTAssertEqual(UsageMath.remainingFraction(remaining: -4, limit: 10), 0)
     }
 
-    func testResetDaysCountsWholeDaysAndClampsThePast() {
-        let now = Date(timeIntervalSince1970: 1_700_000_000)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(3 * 86_400), now: now), 3)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(3 * 86_400 + 10), now: now), 3)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(2 * 3_600), now: now), 0)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now, now: now), 0)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(-86_400), now: now), 0)
+    func testResetDaysUsesLocalCalendarDays() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
+        func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int, zone: TimeZone? = nil) -> Date {
+            var parts = DateComponents()
+            parts.calendar = calendar
+            parts.timeZone = zone ?? calendar.timeZone
+            parts.year = year
+            parts.month = month
+            parts.day = day
+            parts.hour = hour
+            parts.minute = minute
+            return calendar.date(from: parts)!
+        }
+
+        let now = date(2026, 10, 15, 15, 40)
+        let laterToday = date(2026, 10, 15, 23, 0)
+        let nextLocalDayStillSameUTCDate = date(2026, 10, 15, 16, 30, zone: TimeZone(secondsFromGMT: 0))
+        let inThree = date(2026, 10, 18, 1, 0)
+
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: laterToday, now: now, calendar: calendar), 0)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: nextLocalDayStillSameUTCDate, now: now, calendar: calendar), 1)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: inThree, now: now, calendar: calendar), 3)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(-3600), now: now, calendar: calendar), 0)
     }
 
     func testRemainingPercentClampsUsedAmount() {
@@ -47,9 +64,9 @@ final class UsageMathTests: XCTestCase {
     func testDayLabels() {
         XCTAssertEqual(UsageMath.dayLabel(resetDays: 0), "今天")
         XCTAssertEqual(UsageMath.dayLabel(resetDays: -2), "今天")
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 3), "3天")
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 26), "26天")
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 30), "30天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 3), "3 天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 26), "26 天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 30), "30 天")
     }
 
     func testBarLengthIsRemainingFractionOfTheCycle() {
@@ -68,7 +85,9 @@ final class UsageMathTests: XCTestCase {
         let milliseconds = String(Int(end.timeIntervalSince1970 * 1000))
         let parsedMilliseconds = UsageMath.parseCycleEnd(milliseconds)
         XCTAssertEqual(parsedMilliseconds?.timeIntervalSince1970 ?? -1, end.timeIntervalSince1970, accuracy: 0.001)
-        XCTAssertEqual(UsageMath.resetDays(cycleEnd: try XCTUnwrap(parsedMilliseconds), now: now), 26)
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: try XCTUnwrap(parsedMilliseconds), now: now, calendar: utc), 26)
 
         let parsedSeconds = UsageMath.parseCycleEnd(end.timeIntervalSince1970)
         XCTAssertEqual(parsedSeconds?.timeIntervalSince1970 ?? -1, end.timeIntervalSince1970, accuracy: 0.001)
@@ -91,8 +110,12 @@ final class UsageMathTests: XCTestCase {
 
     func testRosterOrderAndCaption() {
         XCTAssertEqual(StickyRoster.names, ["Cursor", "Grok", "Mimo", "Grok Bot"])
-        XCTAssertEqual(StickyCopy.caption, "条长是本周期剩余，填充是剩余用量")
         XCTAssertEqual(StickyCopy.notConnected, "未接入")
         XCTAssertTrue(StickyRoster.pending.allSatisfy { $0.reason == "未接入" })
+        let rows = StickyRoster.names.map {
+            VendorSnapshot(name: $0, kind: .unavailable(reason: StickyCopy.notConnected))
+        }
+        XCTAssertEqual(VendorOrder.arrange(rows, order: ["Grok Bot", "Cursor"]).map(\.name), ["Grok Bot", "Cursor", "Grok", "Mimo"])
+        XCTAssertEqual(VendorOrder.move("Cursor", in: StickyRoster.names, to: 2), ["Grok", "Mimo", "Cursor", "Grok Bot"])
     }
 }

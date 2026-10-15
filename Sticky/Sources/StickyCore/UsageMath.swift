@@ -22,18 +22,20 @@ public enum UsageMath {
         return min(100, max(0, 100 - usedPercent))
     }
 
-    /// Whole days until `cycleEnd`. A partial day does not count.
-    /// Results at or before `now` clamp to 0, which the note shows as「今天」.
-    public static func resetDays(cycleEnd: Date, now: Date) -> Int {
-        let days = cycleEnd.timeIntervalSince(now) / 86_400
-        if days <= 0 || !days.isFinite { return 0 }
-        return Int(floor(days + 1e-6))
+    /// Local calendar days from `now` until `cycleEnd`. The instants are absolute;
+    /// `calendar` (the Mac clock by default) decides which civil day they fall on.
+    /// A reset later today is 0, which the note shows as「今天」.
+    public static func resetDays(cycleEnd: Date, now: Date, calendar: Calendar = .current) -> Int {
+        let start = calendar.startOfDay(for: now)
+        let end = calendar.startOfDay(for: cycleEnd)
+        let days = calendar.dateComponents([.day], from: start, to: end).day ?? 0
+        return max(0, days)
     }
 
     public static func dayLabel(resetDays: Int) -> String {
         let days = max(0, resetDays)
         if days == 0 { return "今天" }
-        return "\(days)天"
+        return "\(days) 天"
     }
 
     /// Bar length is how much of the real cycle is still ahead, not a fixed 30-day scale.
