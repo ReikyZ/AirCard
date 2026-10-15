@@ -38,6 +38,14 @@ public enum UsageMath {
         return "\(days) 天"
     }
 
+    /// Share of the longest cycle. A 7-day cycle next to a 31-day cycle is 7/31 of that track.
+    public static func trackWidthFraction(cycleSeconds: Double, longestSeconds: Double) -> Double {
+        guard cycleSeconds.isFinite, longestSeconds.isFinite, cycleSeconds > 0, longestSeconds > 0 else {
+            return 0
+        }
+        return min(1, cycleSeconds / longestSeconds)
+    }
+
     /// Bar length is how much of the real cycle is still ahead, not a fixed 30-day scale.
     public static func cycleRemainingFraction(start: Date, end: Date, now: Date) -> Double {
         let span = end.timeIntervalSince(start)

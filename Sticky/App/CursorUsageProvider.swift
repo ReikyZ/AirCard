@@ -166,18 +166,14 @@ private func loadDashboard(
         let remaining = UsageMath.remainingPercent(usedPercent: reading.usedPercent)
         let fraction = remaining / 100
         let days = UsageMath.resetDays(cycleEnd: reading.cycleEnd, now: now)
-        let barLength = UsageMath.cycleRemainingFraction(
-            start: reading.cycleStart,
-            end: reading.cycleEnd,
-            now: now
-        )
+        let cycleSeconds = max(0, reading.cycleEnd.timeIntervalSince(reading.cycleStart))
         return VendorSnapshot(
             name: vendorName,
             kind: .usage(
                 percent: UsageMath.percentPoints(fraction: fraction),
                 fill: fraction,
                 resetDays: days,
-                barLength: barLength
+                cycleSeconds: cycleSeconds
             )
         )
     } catch is CancellationError {

@@ -67,9 +67,9 @@ public struct VendorSnapshot: Identifiable, Equatable, Sendable {
         case unavailable(reason: String)
         /// `percent` is the rounded remaining percent, 0...100.
         /// `fill` is that remaining percent as a 0...1 fraction.
-        /// `barLength` is how much of the real cycle is left, 0...1.
-        /// `resetDays` is whole days until the cycle end, clamped at 0.
-        case usage(percent: Int, fill: Double, resetDays: Int, barLength: Double)
+        /// `cycleSeconds` is the full cycle length, `end - start`.
+        /// `resetDays` is whole local calendar days until the cycle end, clamped at 0.
+        case usage(percent: Int, fill: Double, resetDays: Int, cycleSeconds: Double)
     }
 
     public static func unavailable(name: String, reason: String) -> VendorSnapshot {

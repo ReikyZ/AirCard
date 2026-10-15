@@ -24,6 +24,7 @@ struct NoteView: View {
     @State private var draggingName: String?
     @State private var dragTranslation: CGFloat = 0
     @State private var rowCenters: [String: CGFloat] = [:]
+    @State private var dragOrigins: [String: CGFloat] = [:]
 
     @MainActor
     init(model: NoteModel? = nil) {
@@ -34,7 +35,7 @@ struct NoteView: View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(model.rows) { row in
-                    VendorBlock(snapshot: row) { translation, ended in
+                    VendorBlock(snapshot: row, longestCycle: longestCycle) { translation, ended in
                         drag(row.name, translation: translation, ended: ended)
                     }
                     .offset(y: draggingName == row.name ? dragTranslation : 0)
@@ -91,12 +92,15 @@ struct NoteView: View {
     }
 
     private func drag(_ name: String, translation: CGFloat, ended: Bool) {
+        if draggingName == nil {
+            dragOrigins = rowCenters
+        }
         if ended {
-            let origin = rowCenters[name] ?? 0
+            let origin = dragOrigins[name] ?? rowCenters[name] ?? 0
             let y = origin + translation
             let nearest = model.rows.enumerated().min { lhs, rhs in
-                let left = abs((rowCenters[lhs.element.name] ?? 0) - y)
-                let right = abs((rowCenters[rhs.element.name] ?? 0) - y)
+                let left = abs((dragOrigins[lhs.element.name] ?? 0) - y)
+                let right = abs((dragOrigins[rhs.element.name] ?? 0) - y)
                 return left < right
             }?.offset
             if let nearest {
@@ -104,10 +108,19 @@ struct NoteView: View {
             }
             draggingName = nil
             dragTranslation = 0
+            dragOrigins = [:]
         } else {
             draggingName = name
             dragTranslation = translation
         }
+    }
+
+    private var longestCycle: Double {
+        let lengths = model.rows.compactMap { row -> Double? in
+            if case .usage(_, _, _, let seconds) = row.kind, seconds > 0 { return seconds }
+            return nil
+        }
+        return lengths.max() ?? 1
     }
 }
 
@@ -120,17 +133,17 @@ private struct RowCenterKey: PreferenceKey {
 
 private struct VendorBlock: View {
     let snapshot: VendorSnapshot
+    var longestCycle: Double
     var onDrag: (CGFloat, Bool) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .center, spacing: 6) {
-                DragGrip()
-                    .highPriorityGesture(
-                        DragGesture(minimumDistance: 2)
-                            .onChanged { onDrag($0.translation.height, false) }
-                            .onEnded { onDrag($0.translation.height, true) }
-                    )
+                RowGrip { translation, ended in
+                    onDrag(translation, ended)
+                }
+                .frame(width: 14, height: 16, alignment: .leading)
+                .accessibilityLabel("拖动 \(snapshot.name)")
                 Text(snapshot.name)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(StickyColor.ink)
@@ -138,10 +151,15 @@ private struct VendorBlock: View {
                 Spacer(minLength: 8)
                 trailing
             }
-            if case .usage(let percent, let fill, let days, _) = snapshot.kind {
-                UsedTrack(remainingFill: fill, resetDays: days)
-                    .padding(.horizontal, -14)
-                    .accessibilityLabel("\(snapshot.name) \(percent)% \(UsageMath.dayLabel(resetDays: days))")
+            if case .usage(let percent, let fill, let days, let cycleSeconds) = snapshot.kind {
+                let fraction = UsageMath.trackWidthFraction(cycleSeconds: cycleSeconds, longestSeconds: longestCycle)
+                GeometryReader { geo in
+                    let trackWidth = geo.size.width * CGFloat(fraction)
+                    UsedTrack(remainingFill: fill, resetDays: days)
+                        .frame(width: max(trackWidth, 0), height: 16, alignment: .leading)
+                }
+                .frame(height: 16)
+                .accessibilityLabel("\(snapshot.name) \(percent)% \(UsageMath.dayLabel(resetDays: days))")
             }
         }
     }
@@ -169,28 +187,7 @@ private struct VendorBlock: View {
     }
 }
 
-private struct DragGrip: View {
-    var body: some View {
-        VStack(spacing: 2) {
-            ForEach(0..<3, id: \.self) { _ in
-                HStack(spacing: 2) {
-                    dot
-                    dot
-                }
-            }
-        }
-        .padding(.trailing, 2)
-        .contentShape(Rectangle())
-    }
-
-    private var dot: some View {
-        Circle()
-            .fill(StickyColor.ink.opacity(0.55))
-            .frame(width: 2.5, height: 2.5)
-    }
-}
-
-/// Full-width track. Brown is the used share; the day label sits at that segment's right edge.
+/// Track width follows the cycle. Brown is the used share; the day label sits at that segment's right edge.
 private struct UsedTrack: View {
     var remainingFill: Double
     var resetDays: Int
@@ -249,7 +246,7 @@ private struct PreviewUsageProvider: UsageProvider {
     func load(now: Date) async -> VendorSnapshot {
         VendorSnapshot(
             name: vendorName,
-            kind: .usage(percent: percent, fill: fill, resetDays: days, barLength: min(1, Double(max(days, 0)) / 30))
+            kind: .usage(percent: percent, fill: fill, resetDays: days, cycleSeconds: Double(max(days, 1)) * 86_400)
         )
     }
 }

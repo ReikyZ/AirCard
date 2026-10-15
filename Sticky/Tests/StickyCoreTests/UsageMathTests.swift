@@ -69,6 +69,16 @@ final class UsageMathTests: XCTestCase {
         XCTAssertEqual(UsageMath.dayLabel(resetDays: 30), "30 天")
     }
 
+    func testTrackWidthScalesWithCycleLength() {
+        let month = 31.0 * 86_400
+        let week = 7.0 * 86_400
+        let fraction = UsageMath.trackWidthFraction(cycleSeconds: week, longestSeconds: month)
+        XCTAssertEqual(fraction, 7.0 / 31.0, accuracy: 0.000_000_1)
+        XCTAssertLessThan(fraction, 0.25)
+        XCTAssertEqual(UsageMath.trackWidthFraction(cycleSeconds: month, longestSeconds: month), 1)
+        XCTAssertEqual(UsageMath.trackWidthFraction(cycleSeconds: 0, longestSeconds: month), 0)
+    }
+
     func testBarLengthIsRemainingFractionOfTheCycle() {
         let start = Date(timeIntervalSince1970: 1_000)
         let end = start.addingTimeInterval(10 * 86_400)
