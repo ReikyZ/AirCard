@@ -1,7 +1,7 @@
 import Foundation
 
 public enum StickyCopy {
-    public static let caption = "条长是剩余天数，填充是剩余用量"
+    public static let caption = "条长是剩余天数，填充是已用比例"
     public static let notConnected = "未接入"
     public static let loading = "读取中"
     public static let signedOut = "未登录"
@@ -14,14 +14,14 @@ public enum StickyCopy {
 
 public enum StickyRoster {
     public static let cursor = "Cursor"
+    public static let grok = "Grok"
     public static let pending: [(name: String, reason: String)] = [
-        ("Grok", StickyCopy.notConnected),
         ("Mimo", StickyCopy.notConnected),
         ("Grok Bot", StickyCopy.notConnected),
     ]
 
     public static var names: [String] {
-        [cursor] + pending.map(\.name)
+        [cursor, grok] + pending.map(\.name)
     }
 }
 

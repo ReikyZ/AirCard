@@ -80,7 +80,7 @@ final class UsageMathTests: XCTestCase {
 
     func testRosterOrderAndCaption() {
         XCTAssertEqual(StickyRoster.names, ["Cursor", "Grok", "Mimo", "Grok Bot"])
-        XCTAssertEqual(StickyCopy.caption, "条长是剩余天数，填充是剩余用量")
+        XCTAssertEqual(StickyCopy.caption, "条长是剩余天数，填充是已用比例")
         XCTAssertEqual(StickyCopy.notConnected, "未接入")
         XCTAssertTrue(StickyRoster.pending.allSatisfy { $0.reason == "未接入" })
     }

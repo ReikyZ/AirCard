@@ -17,6 +17,7 @@
 		A10000000000000000000048 /* UsageMath.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000028 /* UsageMath.swift */; };
 		A10000000000000000000049 /* PeriodUsageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000029 /* PeriodUsageDecoder.swift */; };
 		A1000000000000000000004A /* TokenText.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002A /* TokenText.swift */; };
+		A1000000000000000000004B /* DashboardUsageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002B /* DashboardUsageDecoder.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		A10000000000000000000028 /* UsageMath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageMath.swift; sourceTree = "<group>"; };
 		A10000000000000000000029 /* PeriodUsageDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodUsageDecoder.swift; sourceTree = "<group>"; };
 		A1000000000000000000002A /* TokenText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenText.swift; sourceTree = "<group>"; };
+		A1000000000000000000002B /* DashboardUsageDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardUsageDecoder.swift; sourceTree = "<group>"; };
 		A10000000000000000000031 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -80,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000029 /* PeriodUsageDecoder.swift */,
+				A1000000000000000000002B /* DashboardUsageDecoder.swift */,
 				A1000000000000000000002A /* TokenText.swift */,
 				A10000000000000000000028 /* UsageMath.swift */,
 				A10000000000000000000027 /* VendorSnapshot.swift */,
@@ -173,6 +176,7 @@
 				A10000000000000000000048 /* UsageMath.swift in Sources */,
 				A10000000000000000000049 /* PeriodUsageDecoder.swift in Sources */,
 				A1000000000000000000004A /* TokenText.swift in Sources */,
+				A1000000000000000000004B /* DashboardUsageDecoder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -226,6 +230,7 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sticky;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -260,6 +265,7 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Sticky;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";

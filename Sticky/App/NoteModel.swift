@@ -13,7 +13,7 @@ final class NoteModel: ObservableObject {
     }
 
     static func liveProviders() -> [any UsageProvider] {
-        var providers: [any UsageProvider] = [CursorUsageProvider()]
+        var providers: [any UsageProvider] = [CursorUsageProvider(), GrokUsageProvider()]
         for vendor in StickyRoster.pending {
             providers.append(UnavailableProvider(vendorName: vendor.name, reason: vendor.reason))
         }
