@@ -19,8 +19,11 @@ public enum PeriodUsageDecodeError: Error, Equatable {
 }
 
 public enum PeriodUsageDecoder {
-    /// Reads `planUsage.remaining`, `planUsage.limit`, and `billingCycleEnd`.
-    /// `totalPercentUsed` and `displayMessage` are ignored on purpose.
+    /// Reads `planUsage.limit` and a remaining amount, plus `billingCycleEnd`.
+    /// A present `planUsage.remaining` wins. When it is absent, remaining is
+    /// `limit - includedSpend`, then `limit - totalSpend`, then
+    /// `limit * (1 - totalPercentUsed / 100)`. `displayMessage` is still ignored.
+    /// Top-level `billingCycleEnd` is preferred over the nested value.
     public static func decode(_ data: Data) throws -> PeriodUsageReading {
         let object: Any
         do {
@@ -34,10 +37,10 @@ public enum PeriodUsageDecoder {
         guard let plan = json["planUsage"] as? [String: Any] else {
             throw PeriodUsageDecodeError.missingPlanUsage
         }
-        guard
-            let remaining = UsageMath.doubleValue(plan["remaining"]),
-            let limit = UsageMath.doubleValue(plan["limit"])
-        else {
+        guard let limit = UsageMath.doubleValue(plan["limit"]) else {
+            throw PeriodUsageDecodeError.missingPlanUsage
+        }
+        guard let remaining = remaining(in: plan, limit: limit) else {
             throw PeriodUsageDecodeError.missingPlanUsage
         }
         let cycleValue = present(json["billingCycleEnd"]) ?? present(plan["billingCycleEnd"])
@@ -45,6 +48,25 @@ public enum PeriodUsageDecoder {
             throw PeriodUsageDecodeError.missingCycleEnd
         }
         return PeriodUsageReading(remaining: remaining, limit: limit, cycleEnd: cycleEnd)
+    }
+
+    /// `remaining` is optional on the live dashboard payload. Spend and percent
+    /// fields are only used when it is missing, so an explicit remaining still wins.
+    private static func remaining(in plan: [String: Any], limit: Double) -> Double? {
+        if let remaining = UsageMath.doubleValue(plan["remaining"]) {
+            return remaining
+        }
+        if let includedSpend = UsageMath.doubleValue(plan["includedSpend"]) {
+            return limit - includedSpend
+        }
+        if let totalSpend = UsageMath.doubleValue(plan["totalSpend"]) {
+            return limit - totalSpend
+        }
+        if let totalPercentUsed = UsageMath.doubleValue(plan["totalPercentUsed"]) {
+            let fraction = 1 - totalPercentUsed / 100
+            return limit * fraction
+        }
+        return nil
     }
 
     private static func present(_ value: Any?) -> Any? {

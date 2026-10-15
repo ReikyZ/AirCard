@@ -25,6 +25,26 @@ final class PeriodUsageDecoderTests: XCTestCase {
         XCTAssertNotEqual(UsageMath.percentPoints(fraction: fraction), 10)
     }
 
+    func testIncludedSpendWithoutRemaining() throws {
+        let json = """
+        {
+          "billingCycleEnd": "1702592000000",
+          "planUsage": {
+            "limit": 10000,
+            "includedSpend": 6600
+          }
+        }
+        """.data(using: .utf8)!
+
+        let reading = try PeriodUsageDecoder.decode(json)
+        XCTAssertEqual(reading.remaining, 3400)
+        XCTAssertEqual(reading.limit, 10000)
+        XCTAssertEqual(reading.cycleEnd.timeIntervalSince1970, 1_702_592_000, accuracy: 0.001)
+
+        let fraction = try XCTUnwrap(UsageMath.remainingFraction(remaining: reading.remaining, limit: reading.limit))
+        XCTAssertEqual(UsageMath.percentPoints(fraction: fraction), 34)
+    }
+
     func testStringAmountsAndCycleEndNestedOnPlanUsage() throws {
         let json = """
         {
