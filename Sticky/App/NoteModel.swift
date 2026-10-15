@@ -28,12 +28,12 @@ final class NoteModel: ObservableObject {
         ]
     }
 
-    /// Refreshes when the note appears, then about every five minutes.
+    /// Refreshes when the note appears, then about every ten minutes.
     func run() async {
         await refresh()
         while !Task.isCancelled {
             do {
-                try await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
+                try await Task.sleep(nanoseconds: 10 * 60 * 1_000_000_000)
             } catch {
                 break
             }
