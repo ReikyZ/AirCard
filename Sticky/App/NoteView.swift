@@ -21,8 +21,9 @@ extension Color {
 struct NoteView: View {
     @StateObject private var model: NoteModel
 
-    init(model: NoteModel = NoteModel()) {
-        _model = StateObject(wrappedValue: model)
+    @MainActor
+    init(model: NoteModel? = nil) {
+        _model = StateObject(wrappedValue: model ?? NoteModel())
     }
 
     var body: some View {

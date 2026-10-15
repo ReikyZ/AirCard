@@ -60,7 +60,7 @@ final class NoteModel: ObservableObject {
     private func apply(_ snapshot: VendorSnapshot, at index: Int) {
         guard rows.indices.contains(index) else { return }
         // A cancelled load reports `.loading` so it does not wipe a real reading.
-        if case .loading = snapshot { return }
+        if case .loading = snapshot.kind { return }
         rows[index] = snapshot
     }
 }
