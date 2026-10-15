@@ -163,25 +163,7 @@ private func loadDashboard(
     do {
         let data = try await DashboardRequest.fetch(url: endpoint, cookieLine: cookieLine, session: session)
         let reading = try decode(data)
-        let remaining = UsageMath.remainingPercent(usedPercent: reading.usedPercent)
-        let fraction = remaining / 100
-        let days = UsageMath.resetDays(cycleEnd: reading.cycleEnd, now: now)
-        let cycleSeconds = max(0, reading.cycleEnd.timeIntervalSince(reading.cycleStart))
-        let elapsed = UsageMath.cycleElapsedFraction(
-            start: reading.cycleStart,
-            end: reading.cycleEnd,
-            now: now
-        )
-        return VendorSnapshot(
-            name: vendorName,
-            kind: .usage(
-                percent: UsageMath.percentPoints(fraction: fraction),
-                fill: fraction,
-                resetDays: days,
-                cycleSeconds: cycleSeconds,
-                elapsed: elapsed
-            )
-        )
+        return stickyUsageSnapshot(vendorName: vendorName, reading: reading, now: now)
     } catch is CancellationError {
         return VendorSnapshot(name: vendorName, kind: .loading)
     } catch let error as URLError where error.code == .cancelled {

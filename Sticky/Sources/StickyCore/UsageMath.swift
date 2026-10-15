@@ -24,7 +24,6 @@ public enum UsageMath {
 
     /// Local calendar days from `now` until `cycleEnd`. The instants are absolute;
     /// `calendar` (the Mac clock by default) decides which civil day they fall on.
-    /// A reset later today is 0, which the note shows as「今天」.
     public static func resetDays(cycleEnd: Date, now: Date, calendar: Calendar = .current) -> Int {
         let start = calendar.startOfDay(for: now)
         let end = calendar.startOfDay(for: cycleEnd)
@@ -34,8 +33,23 @@ public enum UsageMath {
 
     public static func dayLabel(resetDays: Int) -> String {
         let days = max(0, resetDays)
-        if days == 0 { return "今天" }
-        return "\(days) 天"
+        if days == 0 { return "0小时" }
+        return "\(days)天"
+    }
+
+    /// Under 24 hours the note shows whole hours, rounded up. A reset already past is `0小时`.
+    public static func remainingLabel(cycleEnd: Date, now: Date, calendar: Calendar = .current) -> String {
+        let remaining = cycleEnd.timeIntervalSince(now)
+        if !remaining.isFinite || remaining <= 0 {
+            return "0小时"
+        }
+        let day: TimeInterval = 24 * 60 * 60
+        if remaining >= day {
+            let days = max(1, resetDays(cycleEnd: cycleEnd, now: now, calendar: calendar))
+            return "\(days)天"
+        }
+        let hours = Int((remaining / 3600).rounded(.up))
+        return "\(max(hours, 1))小时"
     }
 
     /// Share of the longest cycle. A 7-day cycle next to a 31-day cycle is 7/31 of that track.

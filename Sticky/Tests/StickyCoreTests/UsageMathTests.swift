@@ -62,11 +62,40 @@ final class UsageMathTests: XCTestCase {
     }
 
     func testDayLabels() {
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 0), "今天")
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: -2), "今天")
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 3), "3 天")
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 26), "26 天")
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 30), "30 天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 3), "3天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 26), "26天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 29), "29天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 30), "30天")
+    }
+
+    func testRemainingLabelUsesHoursUnderOneDay() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
+        func date(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
+            var parts = DateComponents()
+            parts.calendar = calendar
+            parts.timeZone = calendar.timeZone
+            parts.year = 2026
+            parts.month = 10
+            parts.day = day
+            parts.hour = hour
+            parts.minute = minute
+            return calendar.date(from: parts)!
+        }
+
+        let now = date(15, 17, 0)
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: date(15, 16, 0), now: now, calendar: calendar), "0小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(29 * 24 * 3600), now: now, calendar: calendar), "29天")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(24 * 3600), now: now, calendar: calendar), "1天")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(5 * 3600), now: now, calendar: calendar), "5小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(4 * 3600 + 60), now: now, calendar: calendar), "5小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(60), now: now, calendar: calendar), "1小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(-60), now: now, calendar: calendar), "0小时")
+        let laterSameEvening = date(16, 12, 5)
+        let label = UsageMath.remainingLabel(cycleEnd: laterSameEvening, now: now, calendar: calendar)
+        XCTAssertEqual(label, "20小时")
+        XCTAssertFalse(label.contains("今天"))
+        XCTAssertNotEqual(label, "1天")
     }
 
     func testTrackWidthScalesWithCycleLength() {

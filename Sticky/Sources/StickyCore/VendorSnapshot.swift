@@ -67,7 +67,8 @@ public struct VendorSnapshot: Identifiable, Equatable, Sendable {
         /// The track's left segment is the remaining time. The right segment is this elapsed time.
         /// `cycleSeconds` is the full cycle length, `end - start`.
         /// `resetDays` is whole local calendar days until the cycle end, clamped at 0.
-        case usage(percent: Int, fill: Double, resetDays: Int, cycleSeconds: Double, elapsed: Double)
+        /// `label` is the remaining-time text: days at 24 hours or more, otherwise hours.
+        case usage(percent: Int, fill: Double, resetDays: Int, cycleSeconds: Double, elapsed: Double, label: String)
     }
 
     public static func unavailable(name: String, reason: String) -> VendorSnapshot {

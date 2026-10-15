@@ -97,7 +97,7 @@ final class MimoUsageDecoderTests: XCTestCase {
         nowParts.second = 0
         let now = china.date(from: nowParts)!
         XCTAssertEqual(UsageMath.resetDays(cycleEnd: cycle.end, now: now, calendar: china), 25)
-        XCTAssertEqual(UsageMath.dayLabel(resetDays: 25), "25 天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 25), "25天")
         let elapsed = UsageMath.cycleElapsedFraction(start: cycle.start, end: cycle.end, now: now)
         XCTAssertLessThan(elapsed, 0.5)
         XCTAssertFalse(UsageMath.dayLabelInElapsedSegment(elapsed: elapsed))

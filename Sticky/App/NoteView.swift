@@ -117,7 +117,7 @@ struct NoteView: View {
 
     private var longestCycle: Double {
         let lengths = model.rows.compactMap { row -> Double? in
-            if case .usage(_, _, _, let seconds, _) = row.kind, seconds > 0 { return seconds }
+            if case .usage(_, _, _, let seconds, _, _) = row.kind, seconds > 0 { return seconds }
             return nil
         }
         return lengths.max() ?? 1
@@ -151,15 +151,15 @@ private struct VendorBlock: View {
                 Spacer(minLength: 8)
                 trailing
             }
-            if case .usage(let percent, _, let days, let cycleSeconds, let elapsed) = snapshot.kind {
+            if case .usage(let percent, _, _, let cycleSeconds, let elapsed, let label) = snapshot.kind {
                 let fraction = UsageMath.trackWidthFraction(cycleSeconds: cycleSeconds, longestSeconds: longestCycle)
                 GeometryReader { geo in
                     let trackWidth = geo.size.width * CGFloat(fraction)
-                    CycleTrack(elapsed: elapsed, resetDays: days)
+                    CycleTrack(elapsed: elapsed, label: label)
                         .frame(width: max(trackWidth, 0), height: 16, alignment: .leading)
                 }
                 .frame(height: 16)
-                .accessibilityLabel("\(snapshot.name) \(percent)% \(UsageMath.dayLabel(resetDays: days))")
+                .accessibilityLabel("\(snapshot.name) \(percent)% \(label)")
             }
         }
     }
@@ -167,7 +167,7 @@ private struct VendorBlock: View {
     @ViewBuilder
     private var trailing: some View {
         switch snapshot.kind {
-        case .usage(let percent, _, _, _, _):
+        case .usage(let percent, _, _, _, _, _):
             Text("\(percent)%")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(StickyColor.ink)
@@ -191,10 +191,9 @@ private struct VendorBlock: View {
 /// The day label sits in the longer of those two, flush against the split.
 private struct CycleTrack: View {
     var elapsed: Double
-    var resetDays: Int
+    var label: String
 
     var body: some View {
-        let label = UsageMath.dayLabel(resetDays: resetDays)
         let elapsedFraction = CGFloat(min(1, max(0, elapsed.isFinite ? elapsed : 0)))
         let remainingFraction = 1 - elapsedFraction
         let labelInElapsed = UsageMath.dayLabelInElapsedSegment(elapsed: Double(elapsedFraction))
@@ -270,7 +269,8 @@ private struct PreviewUsageProvider: UsageProvider {
                 fill: fill,
                 resetDays: days,
                 cycleSeconds: Double(max(days, 1)) * 86_400,
-                elapsed: 0
+                elapsed: 0,
+                label: UsageMath.dayLabel(resetDays: days)
             )
         )
     }

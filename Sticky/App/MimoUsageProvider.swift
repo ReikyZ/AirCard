@@ -157,6 +157,7 @@ func stickyUsageSnapshot(vendorName: String, reading: DashboardUsageReading, now
     let days = UsageMath.resetDays(cycleEnd: reading.cycleEnd, now: now)
     let cycleSeconds = max(0, reading.cycleEnd.timeIntervalSince(reading.cycleStart))
     let elapsed = UsageMath.cycleElapsedFraction(start: reading.cycleStart, end: reading.cycleEnd, now: now)
+    let label = UsageMath.remainingLabel(cycleEnd: reading.cycleEnd, now: now)
     return VendorSnapshot(
         name: vendorName,
         kind: .usage(
@@ -164,7 +165,8 @@ func stickyUsageSnapshot(vendorName: String, reading: DashboardUsageReading, now
             fill: fraction,
             resetDays: days,
             cycleSeconds: cycleSeconds,
-            elapsed: elapsed
+            elapsed: elapsed,
+            label: label
         )
     )
 }
