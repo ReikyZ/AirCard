@@ -281,7 +281,6 @@ struct NoteView_Previews: PreviewProvider {
         // Reference layout only. These numbers are not live usage.
         NoteView(model: NoteModel(providers: [
             PreviewUsageProvider(vendorName: "Cursor", percent: 34, fill: 0.34, days: 3),
-            PreviewUsageProvider(vendorName: "Grok", percent: 81, fill: 0.81, days: 26),
             PreviewUsageProvider(vendorName: "Mimo", percent: 11, fill: 0.11, days: 30),
             PreviewUsageProvider(vendorName: "Grok Bot", percent: 55, fill: 0.55, days: 9),
         ]))

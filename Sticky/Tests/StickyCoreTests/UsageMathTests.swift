@@ -144,13 +144,13 @@ final class UsageMathTests: XCTestCase {
     }
 
     func testRosterOrderAndCaption() {
-        XCTAssertEqual(StickyRoster.names, ["Cursor", "Grok", "Mimo", "Grok Bot"])
+        XCTAssertEqual(StickyRoster.names, ["Cursor", "Mimo", "Grok Bot"])
+        XCTAssertFalse(StickyRoster.names.contains("Grok"))
         XCTAssertEqual(StickyCopy.notConnected, "未接入")
-        XCTAssertTrue(StickyRoster.pending.allSatisfy { $0.reason == "未接入" })
         let rows = StickyRoster.names.map {
             VendorSnapshot(name: $0, kind: .unavailable(reason: StickyCopy.notConnected))
         }
-        XCTAssertEqual(VendorOrder.arrange(rows, order: ["Grok Bot", "Cursor"]).map(\.name), ["Grok Bot", "Cursor", "Grok", "Mimo"])
-        XCTAssertEqual(VendorOrder.move("Cursor", in: StickyRoster.names, to: 2), ["Grok", "Mimo", "Cursor", "Grok Bot"])
+        XCTAssertEqual(VendorOrder.arrange(rows, order: ["Grok Bot", "Grok", "Cursor"]).map(\.name), ["Grok Bot", "Cursor", "Mimo"])
+        XCTAssertEqual(VendorOrder.move("Cursor", in: StickyRoster.names, to: 2), ["Mimo", "Grok Bot", "Cursor"])
     }
 }

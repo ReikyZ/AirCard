@@ -21,13 +21,11 @@ final class NoteModel: ObservableObject {
     }
 
     static func liveProviders() -> [any UsageProvider] {
-        var providers: [any UsageProvider] = [CursorUsageProvider()]
-        for vendor in StickyRoster.pending {
-            providers.append(UnavailableProvider(vendorName: vendor.name, reason: vendor.reason))
-        }
-        providers.append(MimoUsageProvider())
-        providers.append(GrokBotUsageProvider())
-        return providers
+        [
+            CursorUsageProvider(),
+            MimoUsageProvider(),
+            GrokBotUsageProvider(),
+        ]
     }
 
     /// Refreshes when the note appears, then about every five minutes.
@@ -85,7 +83,11 @@ enum StickyOrderStore {
         let placeholders = fallback.map {
             VendorSnapshot(name: $0, kind: .loading)
         }
-        return VendorOrder.arrange(placeholders, order: saved).map(\.name)
+        let names = VendorOrder.arrange(placeholders, order: saved).map(\.name)
+        if names != saved {
+            save(names)
+        }
+        return names
     }
 
     static func save(_ names: [String]) {
