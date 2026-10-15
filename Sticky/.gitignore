@@ -4,3 +4,4 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 .cursor-session
+.mimo-session

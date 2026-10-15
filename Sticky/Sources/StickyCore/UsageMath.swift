@@ -91,7 +91,44 @@ public enum UsageMath {
         if looksNumeric(text), let number = Double(text) {
             return date(fromEpoch: number)
         }
-        return parseISO8601(text)
+        if hasExplicitTimeZone(text) {
+            return parseISO8601(text)
+        }
+        // Xiaomi's plan window is a civil time with no zone, ending at 23:59:59.
+        return parseChinaCivilTime(text) ?? parseISO8601(text)
+    }
+
+    static func hasExplicitTimeZone(_ text: String) -> Bool {
+        if text.hasSuffix("Z") || text.hasSuffix("z") { return true }
+        let tail = text.suffix(6)
+        if tail.count == 6, let sign = tail.first, sign == "+" || sign == "-" {
+            let chars = Array(tail.dropFirst())
+            if chars.count == 5, chars[2] == ":", chars.allSatisfy({ $0 == ":" || $0.isNumber }) {
+                return true
+            }
+        }
+        let compact = text.suffix(5)
+        if compact.count == 5, let sign = compact.first, sign == "+" || sign == "-" {
+            return compact.dropFirst().allSatisfy(\.isNumber)
+        }
+        return false
+    }
+
+    /// `yyyy-MM-dd'T'HH:mm:ss` and `yyyy-MM-dd HH:mm:ss` as Asia/Shanghai wall time.
+    static func parseChinaCivilTime(_ text: String) -> Date? {
+        let zone = TimeZone(identifier: "Asia/Shanghai") ?? TimeZone(secondsFromGMT: 8 * 3600)
+        guard let zone else { return nil }
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = zone
+        for format in ["yyyy-MM-dd'T'HH:mm:ss.SSS", "yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd"] {
+            formatter.dateFormat = format
+            if let date = formatter.date(from: text) {
+                return date
+            }
+        }
+        return nil
     }
 
     static func date(fromNumeric value: Any?) -> Date? {

@@ -25,6 +25,7 @@ final class NoteModel: ObservableObject {
         for vendor in StickyRoster.pending {
             providers.append(UnavailableProvider(vendorName: vendor.name, reason: vendor.reason))
         }
+        providers.append(MimoUsageProvider())
         providers.append(GrokBotUsageProvider())
         return providers
     }

@@ -14,14 +14,14 @@ public enum StickyCopy {
 public enum StickyRoster {
     public static let cursor = "Cursor"
     public static let grok = "Grok"
+    public static let mimo = "Mimo"
     public static let grokBot = "Grok Bot"
     public static let pending: [(name: String, reason: String)] = [
         (grok, StickyCopy.notConnected),
-        ("Mimo", StickyCopy.notConnected),
     ]
 
     public static var names: [String] {
-        [cursor] + pending.map(\.name) + [grokBot]
+        [cursor, grok, mimo, grokBot]
     }
 }
 
