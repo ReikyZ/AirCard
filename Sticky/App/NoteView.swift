@@ -187,7 +187,7 @@ private struct VendorBlock: View {
     }
 }
 
-/// Track length follows the cycle. Left is remaining time, right is elapsed time.
+/// Track length follows the cycle. Left is remaining time (ochre), right is elapsed time (pale).
 /// The day label sits in the longer of those two, flush against the split.
 private struct CycleTrack: View {
     var elapsed: Double
@@ -206,12 +206,12 @@ private struct CycleTrack: View {
             let x = labelX(split: split, width: width, textWidth: textWidth, inElapsed: labelInElapsed)
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(StickyColor.track)
+                    .fill(StickyColor.barFill)
                     .frame(width: width, height: geo.size.height)
                 HStack(spacing: 0) {
                     Color.clear.frame(width: split, height: geo.size.height)
                     Rectangle()
-                        .fill(StickyColor.barFill)
+                        .fill(StickyColor.track)
                         .frame(width: max(elapsedWidth, 0), height: geo.size.height)
                 }
                 .frame(width: width, height: geo.size.height, alignment: .leading)
