@@ -117,7 +117,7 @@ struct NoteView: View {
 
     private var longestCycle: Double {
         let lengths = model.rows.compactMap { row -> Double? in
-            if case .usage(_, _, _, let seconds) = row.kind, seconds > 0 { return seconds }
+            if case .usage(_, _, _, let seconds, _) = row.kind, seconds > 0 { return seconds }
             return nil
         }
         return lengths.max() ?? 1
@@ -151,11 +151,11 @@ private struct VendorBlock: View {
                 Spacer(minLength: 8)
                 trailing
             }
-            if case .usage(let percent, let fill, let days, let cycleSeconds) = snapshot.kind {
+            if case .usage(let percent, _, let days, let cycleSeconds, let elapsed) = snapshot.kind {
                 let fraction = UsageMath.trackWidthFraction(cycleSeconds: cycleSeconds, longestSeconds: longestCycle)
                 GeometryReader { geo in
                     let trackWidth = geo.size.width * CGFloat(fraction)
-                    UsedTrack(remainingFill: fill, resetDays: days)
+                    CycleTrack(elapsed: elapsed, resetDays: days)
                         .frame(width: max(trackWidth, 0), height: 16, alignment: .leading)
                 }
                 .frame(height: 16)
@@ -167,7 +167,7 @@ private struct VendorBlock: View {
     @ViewBuilder
     private var trailing: some View {
         switch snapshot.kind {
-        case .usage(let percent, _, _, _):
+        case .usage(let percent, _, _, _, _):
             Text("\(percent)%")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(StickyColor.ink)
@@ -187,26 +187,35 @@ private struct VendorBlock: View {
     }
 }
 
-/// Track width follows the cycle. Brown is the used share; the day label sits at that segment's right edge.
-private struct UsedTrack: View {
-    var remainingFill: Double
+/// Track length follows the cycle. Left is remaining time, right is elapsed time.
+/// The day label sits in the longer of those two, flush against the split.
+private struct CycleTrack: View {
+    var elapsed: Double
     var resetDays: Int
 
     var body: some View {
         let label = UsageMath.dayLabel(resetDays: resetDays)
+        let elapsedFraction = CGFloat(min(1, max(0, elapsed.isFinite ? elapsed : 0)))
+        let remainingFraction = 1 - elapsedFraction
+        let labelInElapsed = UsageMath.dayLabelInElapsedSegment(elapsed: Double(elapsedFraction))
         GeometryReader { geo in
             let width = max(geo.size.width, 0)
-            let used = CGFloat(min(1, max(0, 1 - remainingFill)))
-            let brownWidth = width * used
+            let split = width * remainingFraction
+            let elapsedWidth = width - split
             let textWidth = labelWidth(label)
-            let inset: CGFloat = 5
-            let x = max(0, brownWidth - textWidth - inset)
+            let x = labelX(split: split, width: width, textWidth: textWidth, inElapsed: labelInElapsed)
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
                     .fill(StickyColor.track)
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(StickyColor.barFill)
-                    .frame(width: brownWidth, height: geo.size.height)
+                    .frame(width: width, height: geo.size.height)
+                HStack(spacing: 0) {
+                    Color.clear.frame(width: split, height: geo.size.height)
+                    Rectangle()
+                        .fill(StickyColor.barFill)
+                        .frame(width: max(elapsedWidth, 0), height: geo.size.height)
+                }
+                .frame(width: width, height: geo.size.height, alignment: .leading)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(StickyColor.ink)
@@ -214,10 +223,20 @@ private struct UsedTrack: View {
                     .fixedSize(horizontal: true, vertical: true)
                     .offset(x: x)
             }
+            .frame(width: width, height: geo.size.height, alignment: .leading)
         }
         .frame(height: 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
+    }
+
+    /// Trailing edge of the label meets the split when it sits in the left segment.
+    /// Leading edge meets the split when it sits in the right segment.
+    private func labelX(split: CGFloat, width: CGFloat, textWidth: CGFloat, inElapsed: Bool) -> CGFloat {
+        if inElapsed {
+            let room = max(0, width - textWidth)
+            return min(max(0, split), room)
+        }
+        return max(0, split - textWidth)
     }
 
     private func labelWidth(_ label: String) -> CGFloat {
@@ -246,7 +265,13 @@ private struct PreviewUsageProvider: UsageProvider {
     func load(now: Date) async -> VendorSnapshot {
         VendorSnapshot(
             name: vendorName,
-            kind: .usage(percent: percent, fill: fill, resetDays: days, cycleSeconds: Double(max(days, 1)) * 86_400)
+            kind: .usage(
+                percent: percent,
+                fill: fill,
+                resetDays: days,
+                cycleSeconds: Double(max(days, 1)) * 86_400,
+                elapsed: 0
+            )
         )
     }
 }

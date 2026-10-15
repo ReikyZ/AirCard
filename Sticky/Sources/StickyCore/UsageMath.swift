@@ -46,13 +46,32 @@ public enum UsageMath {
         return min(1, cycleSeconds / longestSeconds)
     }
 
-    /// Bar length is how much of the real cycle is still ahead, not a fixed 30-day scale.
+    /// Share of this cycle still ahead: `(end - now) / (end - start)`, clamped to 0...1.
+    /// Drawn as the left segment. It does not change how long the track is.
     public static func cycleRemainingFraction(start: Date, end: Date, now: Date) -> Double {
         let span = end.timeIntervalSince(start)
         guard span > 0, span.isFinite else { return 0 }
         let remaining = end.timeIntervalSince(now)
         guard remaining.isFinite else { return 0 }
         return min(1, max(0, remaining / span))
+    }
+
+    /// Share of this cycle already past: `(now - start) / (end - start)`, clamped to 0...1.
+    /// Drawn as the right segment.
+    public static func cycleElapsedFraction(start: Date, end: Date, now: Date) -> Double {
+        let span = end.timeIntervalSince(start)
+        guard span > 0, span.isFinite else { return 0 }
+        let elapsed = now.timeIntervalSince(start)
+        guard elapsed.isFinite else { return 0 }
+        return min(1, max(0, elapsed / span))
+    }
+
+    /// The day label sits in the longer time segment, against the split.
+    /// The right (elapsed) segment holds it only when that side is strictly longer.
+    public static func dayLabelInElapsedSegment(elapsed: Double) -> Bool {
+        guard elapsed.isFinite else { return false }
+        let clamped = min(1, max(0, elapsed))
+        return clamped > (1 - clamped)
     }
 
     /// Accepts unix milliseconds, unix seconds, or ISO-8601. Millisecond values may be strings.

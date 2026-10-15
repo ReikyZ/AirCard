@@ -65,11 +65,13 @@ public struct VendorSnapshot: Identifiable, Equatable, Sendable {
         case loading
         /// Name stays visible. The reason replaces the percent, and there is no bar.
         case unavailable(reason: String)
-        /// `percent` is the rounded remaining percent, 0...100.
-        /// `fill` is that remaining percent as a 0...1 fraction.
+        /// `percent` is the rounded remaining usage percent, 0...100. It is the number beside the name.
+        /// `fill` is that remaining usage percent as a 0...1 fraction. It does not size the bar.
+        /// `elapsed` is time already past, `(now - start) / (end - start)`, clamped to 0...1.
+        /// The track's left segment is the remaining time. The right segment is this elapsed time.
         /// `cycleSeconds` is the full cycle length, `end - start`.
         /// `resetDays` is whole local calendar days until the cycle end, clamped at 0.
-        case usage(percent: Int, fill: Double, resetDays: Int, cycleSeconds: Double)
+        case usage(percent: Int, fill: Double, resetDays: Int, cycleSeconds: Double, elapsed: Double)
     }
 
     public static func unavailable(name: String, reason: String) -> VendorSnapshot {

@@ -84,9 +84,34 @@ final class UsageMathTests: XCTestCase {
         let end = start.addingTimeInterval(10 * 86_400)
         let now = start.addingTimeInterval(4 * 86_400)
         XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: now), 0.6, accuracy: 0.000_000_1)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: start, end: end, now: now), 0.4, accuracy: 0.000_000_1)
         XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: start.addingTimeInterval(-86_400)), 1)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: start, end: end, now: start.addingTimeInterval(-86_400)), 0)
         XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: end.addingTimeInterval(10)), 0)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: start, end: end, now: end.addingTimeInterval(10)), 1)
         XCTAssertEqual(UsageMath.cycleRemainingFraction(start: end, end: end, now: end), 0)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: end, end: end, now: end), 0)
+    }
+
+    func testTrackSplitIsCycleTime() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let month = start.addingTimeInterval(30 * 86_400)
+        let oneDayIn = start.addingTimeInterval(86_400)
+        let monthElapsed = UsageMath.cycleElapsedFraction(start: start, end: month, now: oneDayIn)
+        let monthRemaining = UsageMath.cycleRemainingFraction(start: start, end: month, now: oneDayIn)
+        XCTAssertEqual(monthElapsed, 1.0 / 30.0, accuracy: 0.000_000_1)
+        XCTAssertEqual(monthRemaining, 29.0 / 30.0, accuracy: 0.000_000_1)
+        XCTAssertGreaterThan(monthRemaining, 0.9)
+        XCTAssertFalse(UsageMath.dayLabelInElapsedSegment(elapsed: monthElapsed))
+
+        let week = start.addingTimeInterval(7 * 86_400)
+        let fourDaysIn = start.addingTimeInterval(4 * 86_400)
+        let weekElapsed = UsageMath.cycleElapsedFraction(start: start, end: week, now: fourDaysIn)
+        let weekRemaining = UsageMath.cycleRemainingFraction(start: start, end: week, now: fourDaysIn)
+        XCTAssertEqual(weekRemaining, 3.0 / 7.0, accuracy: 0.000_000_1)
+        XCTAssertEqual(weekElapsed, 4.0 / 7.0, accuracy: 0.000_000_1)
+        XCTAssertTrue(UsageMath.dayLabelInElapsedSegment(elapsed: weekElapsed))
+        XCTAssertFalse(UsageMath.dayLabelInElapsedSegment(elapsed: 0.5))
     }
 
     func testEpochMillisecondsStringAndUnixSeconds() throws {
