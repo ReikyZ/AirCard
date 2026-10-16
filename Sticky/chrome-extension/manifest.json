@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Sticky Mimo",
+  "version": "1.0.0",
+  "description": "Push Mimo token-plan usage and cookies to Sticky on localhost.",
+  "permissions": ["cookies"],
+  "host_permissions": [
+    "https://platform.xiaomimimo.com/*",
+    "http://127.0.0.1:17321/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://platform.xiaomimimo.com/console/plan-manage*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

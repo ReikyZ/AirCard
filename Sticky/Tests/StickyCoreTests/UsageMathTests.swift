@@ -1,0 +1,185 @@
+import XCTest
+@testable import StickyCore
+
+final class UsageMathTests: XCTestCase {
+    func testRemainingFractionPrefersRemainingOverLimit() throws {
+        let fraction = UsageMath.remainingFraction(remaining: 3400, limit: 10_000)
+        XCTAssertEqual(fraction, 0.34)
+        XCTAssertEqual(UsageMath.percentPoints(fraction: try XCTUnwrap(fraction)), 34)
+    }
+
+    func testPercentClampsToDisplayedRange() {
+        XCTAssertEqual(UsageMath.percentPoints(fraction: 0), 0)
+        XCTAssertEqual(UsageMath.percentPoints(fraction: 1), 100)
+        XCTAssertEqual(UsageMath.percentPoints(fraction: 1.4), 100)
+        XCTAssertEqual(UsageMath.percentPoints(fraction: -0.2), 0)
+    }
+
+    func testZeroOrNegativeLimitCannotInventAPercent() {
+        XCTAssertNil(UsageMath.remainingFraction(remaining: 10, limit: 0))
+        XCTAssertNil(UsageMath.remainingFraction(remaining: 10, limit: -5))
+        XCTAssertNil(UsageMath.remainingFraction(remaining: .nan, limit: 10))
+    }
+
+    func testFractionClampsOverflowAndNegativeRemaining() {
+        XCTAssertEqual(UsageMath.remainingFraction(remaining: 50, limit: 10), 1)
+        XCTAssertEqual(UsageMath.remainingFraction(remaining: -4, limit: 10), 0)
+    }
+
+    func testResetDaysUsesLocalCalendarDays() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
+        func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int, zone: TimeZone? = nil) -> Date {
+            var parts = DateComponents()
+            parts.calendar = calendar
+            parts.timeZone = zone ?? calendar.timeZone
+            parts.year = year
+            parts.month = month
+            parts.day = day
+            parts.hour = hour
+            parts.minute = minute
+            return calendar.date(from: parts)!
+        }
+
+        let now = date(2026, 10, 15, 15, 40)
+        let laterToday = date(2026, 10, 15, 23, 0)
+        let nextLocalDayStillSameUTCDate = date(2026, 10, 15, 16, 30, zone: TimeZone(secondsFromGMT: 0))
+        let inThree = date(2026, 10, 18, 1, 0)
+
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: laterToday, now: now, calendar: calendar), 0)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: nextLocalDayStillSameUTCDate, now: now, calendar: calendar), 1)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: inThree, now: now, calendar: calendar), 3)
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: now.addingTimeInterval(-3600), now: now, calendar: calendar), 0)
+    }
+
+    func testRemainingPercentClampsUsedAmount() {
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 8.188333333333334), 91.81166666666667, accuracy: 0.000_000_1)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 0), 100)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 100), 0)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: 140), 0)
+        XCTAssertEqual(UsageMath.remainingPercent(usedPercent: -10), 100)
+        XCTAssertEqual(UsageMath.percentPoints(fraction: UsageMath.remainingPercent(usedPercent: 8.188333333333334) / 100), 92)
+    }
+
+    func testDayLabels() {
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 3), "3天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 26), "26天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 29), "29天")
+        XCTAssertEqual(UsageMath.dayLabel(resetDays: 30), "30天")
+    }
+
+    func testRemainingLabelUsesHoursUnderOneDay() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 8 * 3600)!
+        func date(_ day: Int, _ hour: Int, _ minute: Int) -> Date {
+            var parts = DateComponents()
+            parts.calendar = calendar
+            parts.timeZone = calendar.timeZone
+            parts.year = 2026
+            parts.month = 10
+            parts.day = day
+            parts.hour = hour
+            parts.minute = minute
+            return calendar.date(from: parts)!
+        }
+
+        let now = date(15, 17, 0)
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: date(15, 16, 0), now: now, calendar: calendar), "0小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(29 * 24 * 3600), now: now, calendar: calendar), "29天")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(24 * 3600), now: now, calendar: calendar), "1天")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(5 * 3600), now: now, calendar: calendar), "5小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(4 * 3600 + 60), now: now, calendar: calendar), "5小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(60), now: now, calendar: calendar), "1小时")
+        XCTAssertEqual(UsageMath.remainingLabel(cycleEnd: now.addingTimeInterval(-60), now: now, calendar: calendar), "0小时")
+        let laterSameEvening = date(16, 12, 5)
+        let label = UsageMath.remainingLabel(cycleEnd: laterSameEvening, now: now, calendar: calendar)
+        XCTAssertEqual(label, "20小时")
+        XCTAssertFalse(label.contains("今天"))
+        XCTAssertNotEqual(label, "1天")
+    }
+
+    func testTrackWidthScalesWithCycleLength() {
+        let month = 31.0 * 86_400
+        let week = 7.0 * 86_400
+        let fraction = UsageMath.trackWidthFraction(cycleSeconds: week, longestSeconds: month)
+        XCTAssertEqual(fraction, 7.0 / 31.0, accuracy: 0.000_000_1)
+        XCTAssertLessThan(fraction, 0.25)
+        XCTAssertEqual(UsageMath.trackWidthFraction(cycleSeconds: month, longestSeconds: month), 1)
+        XCTAssertEqual(UsageMath.trackWidthFraction(cycleSeconds: 0, longestSeconds: month), 0)
+    }
+
+    func testBarLengthIsRemainingFractionOfTheCycle() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        let end = start.addingTimeInterval(10 * 86_400)
+        let now = start.addingTimeInterval(4 * 86_400)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: now), 0.6, accuracy: 0.000_000_1)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: start, end: end, now: now), 0.4, accuracy: 0.000_000_1)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: start.addingTimeInterval(-86_400)), 1)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: start, end: end, now: start.addingTimeInterval(-86_400)), 0)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: start, end: end, now: end.addingTimeInterval(10)), 0)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: start, end: end, now: end.addingTimeInterval(10)), 1)
+        XCTAssertEqual(UsageMath.cycleRemainingFraction(start: end, end: end, now: end), 0)
+        XCTAssertEqual(UsageMath.cycleElapsedFraction(start: end, end: end, now: end), 0)
+    }
+
+    func testTrackSplitIsCycleTime() {
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let month = start.addingTimeInterval(30 * 86_400)
+        let oneDayIn = start.addingTimeInterval(86_400)
+        let monthElapsed = UsageMath.cycleElapsedFraction(start: start, end: month, now: oneDayIn)
+        let monthRemaining = UsageMath.cycleRemainingFraction(start: start, end: month, now: oneDayIn)
+        XCTAssertEqual(monthElapsed, 1.0 / 30.0, accuracy: 0.000_000_1)
+        XCTAssertEqual(monthRemaining, 29.0 / 30.0, accuracy: 0.000_000_1)
+        XCTAssertGreaterThan(monthRemaining, 0.9)
+        XCTAssertFalse(UsageMath.dayLabelInElapsedSegment(elapsed: monthElapsed))
+
+        let week = start.addingTimeInterval(7 * 86_400)
+        let fourDaysIn = start.addingTimeInterval(4 * 86_400)
+        let weekElapsed = UsageMath.cycleElapsedFraction(start: start, end: week, now: fourDaysIn)
+        let weekRemaining = UsageMath.cycleRemainingFraction(start: start, end: week, now: fourDaysIn)
+        XCTAssertEqual(weekRemaining, 3.0 / 7.0, accuracy: 0.000_000_1)
+        XCTAssertEqual(weekElapsed, 4.0 / 7.0, accuracy: 0.000_000_1)
+        XCTAssertTrue(UsageMath.dayLabelInElapsedSegment(elapsed: weekElapsed))
+        XCTAssertFalse(UsageMath.dayLabelInElapsedSegment(elapsed: 0.5))
+    }
+
+    func testEpochMillisecondsStringAndUnixSeconds() throws {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let end = now.addingTimeInterval(26 * 86_400)
+        let milliseconds = String(Int(end.timeIntervalSince1970 * 1000))
+        let parsedMilliseconds = UsageMath.parseCycleEnd(milliseconds)
+        XCTAssertEqual(parsedMilliseconds?.timeIntervalSince1970 ?? -1, end.timeIntervalSince1970, accuracy: 0.001)
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        XCTAssertEqual(UsageMath.resetDays(cycleEnd: try XCTUnwrap(parsedMilliseconds), now: now, calendar: utc), 26)
+
+        let parsedSeconds = UsageMath.parseCycleEnd(end.timeIntervalSince1970)
+        XCTAssertEqual(parsedSeconds?.timeIntervalSince1970 ?? -1, end.timeIntervalSince1970, accuracy: 0.001)
+    }
+
+    func testISO8601Dates() {
+        let parsed = UsageMath.parseCycleEnd("2026-10-15T00:00:00Z")
+        let fractional = UsageMath.parseCycleEnd("2026-10-15T00:00:00.000Z")
+        XCTAssertEqual(parsed, fractional)
+        XCTAssertNotNil(UsageMath.parseCycleEnd("2026-10-15"))
+        XCTAssertNotNil(UsageMath.parseCycleEnd("2026-10-15T08:00:00+08:00"))
+    }
+
+    func testTokenNormalizeStripsWrappingQuotes() {
+        XCTAssertEqual(TokenText.normalize("  abc  "), "abc")
+        XCTAssertEqual(TokenText.normalize("\"eyJhbGci\""), "eyJhbGci")
+        XCTAssertEqual(TokenText.normalize("\"  eyJ  \""), "eyJ")
+        XCTAssertEqual(TokenText.normalize(""), "")
+    }
+
+    func testRosterOrderAndCaption() {
+        XCTAssertEqual(StickyRoster.names, ["Cursor", "Mimo", "Grok Bot"])
+        XCTAssertFalse(StickyRoster.names.contains("Grok"))
+        XCTAssertEqual(StickyCopy.notConnected, "未接入")
+        let rows = StickyRoster.names.map {
+            VendorSnapshot(name: $0, kind: .unavailable(reason: StickyCopy.notConnected))
+        }
+        XCTAssertEqual(VendorOrder.arrange(rows, order: ["Grok Bot", "Grok", "Cursor"]).map(\.name), ["Grok Bot", "Cursor", "Mimo"])
+        XCTAssertEqual(VendorOrder.move("Cursor", in: StickyRoster.names, to: 2), ["Mimo", "Grok Bot", "Cursor"])
+    }
+}
