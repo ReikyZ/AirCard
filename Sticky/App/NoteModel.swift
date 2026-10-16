@@ -20,6 +20,13 @@ final class NoteModel: ObservableObject {
         StickyOrderStore.save(moved)
     }
 
+    /// Applies a Mimo snapshot from the localhost bridge without waiting for the next poll.
+    func applyBridgeUpdate(_ update: MimoBridgeUpdate) {
+        if let snapshot = update.snapshot {
+            apply(snapshot, at: -1)
+        }
+    }
+
     static func liveProviders() -> [any UsageProvider] {
         [
             CursorUsageProvider(),

@@ -42,6 +42,12 @@ macOS 悬浮便签。纸条约 232pt 宽，无标题，置顶，可拖动。
 
 正文是 `{}`。剩余百分比是 `planUsage.remaining / planUsage.limit`（两者都是美分）。不用 `totalPercentUsed`，那个字段是已用百分比。重置天数来自 `billingCycleEnd`。令牌缺失或请求失败时，这一行只显示名字和一句灰色原因，不会编造百分比。
 
+## Mimo 用量与恢复
+
+平时读 gitignore 的 `Sticky/.mimo-session`（Cookie 行），请求 `tokenPlan/usage` 与 `tokenPlan/current`。失败或未登录时，名字右侧会出现外链图标，点开套餐页。
+
+可选恢复：安装 `userscripts/mimo-usage.user.js`（Tampermonkey），打开套餐页后脚本把用量 JSON 和 Cookie 推到本机 `http://127.0.0.1:17321/mimo-usage`。Sticky 写入 `.mimo-session` 并立刻刷新 Mimo 行。脚本需要 Tampermonkey 的 `GM_cookie` 权限以读取 HttpOnly Cookie；不要把 Cookie 写进仓库。
+
 ## MiniMax 用量
 
 令牌来自本机已登录的 MiniMax Code，不会写入仓库。先读 `~/.minimax/local-runtime.auth.json` 的 `auth.accessToken`，没有再读 `~/Library/Application Support/MiniMax/Cookies` 里 `www.minimaxi.com` 的 `_token`。

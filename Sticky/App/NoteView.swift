@@ -81,6 +81,10 @@ struct NoteView: View {
         .onReceive(NotificationCenter.default.publisher(for: .stickyRefreshRequested)) { _ in
             Task { await model.refresh() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .stickyMimoBridgeUpdate)) { note in
+            guard let update = note.object as? MimoBridgeUpdate else { return }
+            model.applyBridgeUpdate(update)
+        }
         .overlay {
             WindowChrome {
                 Task { await model.refresh() }
@@ -148,6 +152,18 @@ private struct VendorBlock: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(StickyColor.ink)
                     .lineLimit(1)
+                if showsMimoRecoveryLink {
+                    Button {
+                        NSWorkspace.shared.open(MimoSessionFile.planManageURL)
+                    } label: {
+                        Image(systemName: "arrow.up.right.square")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(StickyColor.muted)
+                    }
+                    .buttonStyle(.plain)
+                    .help("打开 Mimo 套餐页")
+                    .accessibilityLabel("打开 Mimo 套餐页")
+                }
                 Spacer(minLength: 8)
                 trailing
             }
@@ -184,6 +200,13 @@ private struct VendorBlock: View {
                 .foregroundStyle(StickyColor.muted)
                 .lineLimit(1)
         }
+    }
+
+    /// Recovery link only on the Mimo row when the live fetch is signed out or failed.
+    private var showsMimoRecoveryLink: Bool {
+        guard snapshot.name == StickyRoster.mimo else { return false }
+        guard case .unavailable(let reason) = snapshot.kind else { return false }
+        return reason == StickyCopy.fetchFailed || reason == StickyCopy.signedOut
     }
 }
 

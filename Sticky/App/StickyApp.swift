@@ -27,6 +27,7 @@ final class StickyApplication: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         installMenu()
+        MimoBridgeServer.shared.start()
 
         let hosting = NSHostingView(rootView: NoteView())
         hosting.wantsLayer = true

@@ -7,6 +7,8 @@ enum MimoSessionError: Error {
 
 /// Cookie line from `Sticky/.mimo-session`. A missing file is 未登录.
 enum MimoSessionFile {
+    static let planManageURL = URL(string: "https://platform.xiaomimimo.com/console/plan-manage")!
+
     static func cookieLine(fileURL: URL? = nil) throws -> String {
         let url: URL
         if let fileURL {
@@ -25,6 +27,23 @@ enum MimoSessionFile {
         } catch {
             throw MimoSessionError.unreadable
         }
+        return try normalizeCookieLine(text)
+    }
+
+    /// Writes the Cookie header value into the gitignored session file. Never logs the value.
+    static func saveCookieLine(_ raw: String) throws {
+        let line = try normalizeCookieLine(raw)
+        guard let url = writeURL() else {
+            throw MimoSessionError.unreadable
+        }
+        do {
+            try line.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            throw MimoSessionError.unreadable
+        }
+    }
+
+    static func normalizeCookieLine(_ text: String) throws -> String {
         var line = text
             .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -39,12 +58,34 @@ enum MimoSessionFile {
     }
 
     static func locate() -> URL? {
-        var candidates: [URL] = []
+        for url in candidateURLs() where FileManager.default.fileExists(atPath: url.path) {
+            return url
+        }
+        return nil
+    }
+
+    /// Preferred path for a new session file (StickySourceRoot), else an existing locate hit.
+    static func writeURL() -> URL? {
+        if let preferred = preferredURL() {
+            return preferred
+        }
+        return locate()
+    }
+
+    private static func preferredURL() -> URL? {
         if let root = Bundle.main.object(forInfoDictionaryKey: "StickySourceRoot") as? String {
             let trimmed = root.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty, !trimmed.contains("$(") {
-                candidates.append(URL(fileURLWithPath: trimmed, isDirectory: true).appendingPathComponent(".mimo-session"))
+                return URL(fileURLWithPath: trimmed, isDirectory: true).appendingPathComponent(".mimo-session")
             }
+        }
+        return nil
+    }
+
+    private static func candidateURLs() -> [URL] {
+        var candidates: [URL] = []
+        if let preferred = preferredURL() {
+            candidates.append(preferred)
         }
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
         var dir = cwd
@@ -55,10 +96,7 @@ enum MimoSessionFile {
             if parent.path == dir.path { break }
             dir = parent
         }
-        for url in candidates where FileManager.default.fileExists(atPath: url.path) {
-            return url
-        }
-        return nil
+        return candidates
     }
 }
 
