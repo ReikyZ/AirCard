@@ -1,19 +1,20 @@
 // ==UserScript==
 // @name         Sticky Mimo Usage
 // @namespace    local.sticky.note
-// @version      1.1.0
+// @version      1.2.0
 // @description  Push Mimo token-plan usage and cookies to Sticky on localhost.
 // @author       Sticky
 // @match        https://platform.xiaomimimo.com/console/plan-manage*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_cookie
+// @grant        GM.cookie
 // @connect      127.0.0.1
 // @run-at       document-idle
 // ==/UserScript==
 
 /*
   Tampermonkey cookie permission:
-  This script uses GM_cookie so it can read HttpOnly cookies for
+  This script uses GM_cookie / GM.cookie so it can read HttpOnly cookies for
   platform.xiaomimimo.com. In Tampermonkey, open the script editor →
   Settings (or the script's access prompts) and allow cookie access
   for this userscript / domain when asked. Without that grant,
@@ -51,12 +52,115 @@
     }
   }
 
-  function logFail(reason) {
+  function logFail(reason, extra) {
     const short = String(reason || "fail");
-    const key = "fail:" + short;
+    const key = "fail:" + short + (extra ? ":" + String(extra) : "");
     if (key === lastLogKey) return;
     lastLogKey = key;
-    console.warn(LOG_TAG, "fail", short);
+    if (extra !== undefined && extra !== null && extra !== "") {
+      console.warn(LOG_TAG, "fail", short, extra);
+    } else {
+      console.warn(LOG_TAG, "fail", short);
+    }
+  }
+
+  function gmInfoBits() {
+    try {
+      if (typeof GM_info === "undefined" || !GM_info) return "";
+      const handler = GM_info.scriptHandler != null ? String(GM_info.scriptHandler) : "";
+      const version = GM_info.version != null ? String(GM_info.version) : "";
+      return [handler, version].filter(Boolean).join(" ");
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function cookiesToLine(cookies) {
+    const list = Array.isArray(cookies) ? cookies : [];
+    return list
+      .map((c) => String(c.name) + "=" + String(c.value))
+      .filter((part) => part.includes("="))
+      .join("; ");
+  }
+
+  function listViaGmCookieCallback(api) {
+    return new Promise((resolve, reject) => {
+      try {
+        api.list({ url: "https://platform.xiaomimimo.com/" }, (cookies, error) => {
+          if (error) {
+            reject(new Error("gm_cookie_unavailable"));
+            return;
+          }
+          resolve(cookies);
+        });
+      } catch (_) {
+        reject(new Error("gm_cookie_unavailable"));
+      }
+    });
+  }
+
+  function listViaGmDotCookie(api) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (cookies, error) => {
+        if (settled) return;
+        settled = true;
+        if (error) {
+          reject(new Error("gm_cookie_unavailable"));
+          return;
+        }
+        resolve(cookies);
+      };
+      try {
+        const result = api.list({ url: "https://platform.xiaomimimo.com/" }, (cookies, error) => {
+          finish(cookies, error);
+        });
+        if (result && typeof result.then === "function") {
+          result.then(
+            (cookies) => finish(cookies, null),
+            () => finish(null, true)
+          );
+        }
+      } catch (_) {
+        reject(new Error("gm_cookie_unavailable"));
+      }
+    });
+  }
+
+  async function readCookies() {
+    const hasLegacy =
+      typeof GM_cookie !== "undefined" && GM_cookie && typeof GM_cookie.list === "function";
+    const hasModern =
+      typeof GM !== "undefined" && GM && GM.cookie && typeof GM.cookie.list === "function";
+
+    if (!hasLegacy && !hasModern) {
+      const err = new Error("gm_cookie_unavailable");
+      err.gmInfoExtra = gmInfoBits();
+      throw err;
+    }
+
+    let lastError = null;
+    if (hasLegacy) {
+      try {
+        const line = cookiesToLine(await listViaGmCookieCallback(GM_cookie));
+        if (!line) throw new Error("cookie_empty");
+        return line;
+      } catch (error) {
+        if (error && error.message === "cookie_empty") throw error;
+        lastError = error;
+      }
+    }
+    if (hasModern) {
+      try {
+        const line = cookiesToLine(await listViaGmDotCookie(GM.cookie));
+        if (!line) throw new Error("cookie_empty");
+        return line;
+      } catch (error) {
+        if (error && error.message === "cookie_empty") throw error;
+        lastError = error;
+      }
+    }
+    throw lastError || new Error("gm_cookie_unavailable");
   }
 
   function usedPercentFromUsage(usage) {
@@ -103,34 +207,6 @@
     });
   }
 
-  function readCookies() {
-    return new Promise((resolve, reject) => {
-      if (typeof GM_cookie === "undefined" || typeof GM_cookie.list !== "function") {
-        reject(new Error("gm_cookie_unavailable"));
-        return;
-      }
-      GM_cookie.list(
-        { url: "https://platform.xiaomimimo.com/" },
-        (cookies, error) => {
-          if (error) {
-            reject(new Error("gm_cookie_unavailable"));
-            return;
-          }
-          const list = Array.isArray(cookies) ? cookies : [];
-          const line = list
-            .map((c) => String(c.name) + "=" + String(c.value))
-            .filter((part) => part.includes("="))
-            .join("; ");
-          if (!line) {
-            reject(new Error("cookie_empty"));
-            return;
-          }
-          resolve(line);
-        }
-      );
-    });
-  }
-
   async function fetchJson(url) {
     const res = await fetch(url, {
       method: "GET",
@@ -173,7 +249,12 @@
       const res = await postToSticky({ cookie, usage, current });
       logOk(res.status, usedPercentFromUsage(usage));
     } catch (error) {
-      logFail(failReason(error));
+      const reason = failReason(error);
+      if (reason === "gm_cookie_unavailable") {
+        logFail(reason, (error && error.gmInfoExtra) || gmInfoBits());
+      } else {
+        logFail(reason);
+      }
     }
   }
 
