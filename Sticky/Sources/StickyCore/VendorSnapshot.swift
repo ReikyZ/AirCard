@@ -14,10 +14,12 @@ public enum StickyCopy {
 public enum StickyRoster {
     public static let cursor = "Cursor"
     public static let mimo = "Mimo"
+    public static let minimax = "MiniMax"
+    public static let minimaxWeek = "MiniMax 周"
     public static let grokBot = "Grok Bot"
 
     public static var names: [String] {
-        [cursor, mimo, grokBot]
+        [cursor, mimo, minimax, minimaxWeek, grokBot]
     }
 }
 

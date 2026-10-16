@@ -6,7 +6,7 @@ macOS 悬浮便签。纸条约 232pt 宽，无标题，置顶，可拖动。
 
 底部小字：条长是剩余天数，填充是剩余用量。
 
-顺序固定为 Cursor、Grok、Mimo、Grok Bot。Cursor 读本机登录态并请求当前账期；另外三家还没有接口，显示「未接入」，不会填示例数字。
+顺序为 Cursor、Mimo、MiniMax、MiniMax 周、Grok Bot。Cursor 和 MiniMax 读本机登录态。MiniMax 是 5 小时额度，MiniMax 周是周额度。没有登录或没有套餐时只显示灰色原因，不会填示例数字。
 
 ## 在 Xcode 里打开并运行
 
@@ -41,6 +41,16 @@ macOS 悬浮便签。纸条约 232pt 宽，无标题，置顶，可拖动。
 `POST https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage`
 
 正文是 `{}`。剩余百分比是 `planUsage.remaining / planUsage.limit`（两者都是美分）。不用 `totalPercentUsed`，那个字段是已用百分比。重置天数来自 `billingCycleEnd`。令牌缺失或请求失败时，这一行只显示名字和一句灰色原因，不会编造百分比。
+
+## MiniMax 用量
+
+令牌来自本机已登录的 MiniMax Code，不会写入仓库。先读 `~/.minimax/local-runtime.auth.json` 的 `auth.accessToken`，没有再读 `~/Library/Application Support/MiniMax/Cookies` 里 `www.minimaxi.com` 的 `_token`。
+
+请求：
+
+`GET https://www.minimaxi.com/backend/account/token_plan/remains_percent`
+
+请求头是 `token`。只取 `model_name` 为 `general` 的编程额度，不把视频次数算进来。已用百分比是 `current_interval_used_percent / current_interval_total_percent`（周额度用 `current_weekly_*`）。字段可以是数字，也可以是 `4%` 这样的字符串。重置时间用 `start_time`/`end_time`，周额度用 `weekly_start_time`/`weekly_end_time`，都是 unix 毫秒。
 
 ## 计算库
 

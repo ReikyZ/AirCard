@@ -20,6 +20,8 @@
 		A1000000000000000000004B /* DashboardUsageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002B /* DashboardUsageDecoder.swift */; };
 		A1000000000000000000004C /* MimoUsageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002C /* MimoUsageDecoder.swift */; };
 		A1000000000000000000004D /* MimoUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002D /* MimoUsageProvider.swift */; };
+		A1000000000000000000004E /* MiniMaxUsageDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002E /* MiniMaxUsageDecoder.swift */; };
+		A1000000000000000000004F /* MiniMaxUsageProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000002F /* MiniMaxUsageProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +39,8 @@
 		A1000000000000000000002B /* DashboardUsageDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardUsageDecoder.swift; sourceTree = "<group>"; };
 		A1000000000000000000002C /* MimoUsageDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MimoUsageDecoder.swift; sourceTree = "<group>"; };
 		A1000000000000000000002D /* MimoUsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MimoUsageProvider.swift; sourceTree = "<group>"; };
+		A1000000000000000000002E /* MiniMaxUsageDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxUsageDecoder.swift; sourceTree = "<group>"; };
+		A1000000000000000000002F /* MiniMaxUsageProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniMaxUsageProvider.swift; sourceTree = "<group>"; };
 		A10000000000000000000031 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -70,6 +74,7 @@
 				A10000000000000000000024 /* WindowChrome.swift */,
 				A10000000000000000000025 /* CursorUsageProvider.swift */,
 				A1000000000000000000002D /* MimoUsageProvider.swift */,
+				A1000000000000000000002F /* MiniMaxUsageProvider.swift */,
 				A10000000000000000000026 /* CursorStateDatabase.swift */,
 			);
 			path = App;
@@ -89,6 +94,7 @@
 				A10000000000000000000029 /* PeriodUsageDecoder.swift */,
 				A1000000000000000000002B /* DashboardUsageDecoder.swift */,
 				A1000000000000000000002C /* MimoUsageDecoder.swift */,
+				A1000000000000000000002E /* MiniMaxUsageDecoder.swift */,
 				A1000000000000000000002A /* TokenText.swift */,
 				A10000000000000000000028 /* UsageMath.swift */,
 				A10000000000000000000027 /* VendorSnapshot.swift */,
@@ -185,6 +191,8 @@
 				A1000000000000000000004B /* DashboardUsageDecoder.swift in Sources */,
 				A1000000000000000000004C /* MimoUsageDecoder.swift in Sources */,
 				A1000000000000000000004D /* MimoUsageProvider.swift in Sources */,
+				A1000000000000000000004E /* MiniMaxUsageDecoder.swift in Sources */,
+				A1000000000000000000004F /* MiniMaxUsageProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -24,6 +24,8 @@ final class NoteModel: ObservableObject {
         [
             CursorUsageProvider(),
             MimoUsageProvider(),
+            MiniMaxUsageProvider(window: .fiveHour),
+            MiniMaxUsageProvider(window: .week),
             GrokBotUsageProvider(),
         ]
     }
