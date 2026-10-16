@@ -84,10 +84,10 @@ async function syncOnce() {
   }
   lastSentAt = now;
 
-  const cookie = await readCookieLine();
-  const [usage, current] = await Promise.all([
-    fetchJson(USAGE_URL, cookie),
-    fetchJson(CURRENT_URL, cookie),
+  const [cookie, usage, current] = await Promise.all([
+    readCookieLine(),
+    fetchJson(USAGE_URL),
+    fetchJson(CURRENT_URL),
   ]);
   // Cookie and body are sent to Sticky only. Never log them.
   const res = await postToSticky({ cookie, usage, current });

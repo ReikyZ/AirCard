@@ -46,7 +46,7 @@ macOS 悬浮便签。纸条约 232pt 宽，无标题，置顶，可拖动。
 
 平时读 gitignore 的 `Sticky/.mimo-session`（Cookie 行），请求 `tokenPlan/usage` 与 `tokenPlan/current`。失败或未登录时，名字右侧会出现外链图标，点开套餐页。
 
-可选恢复：安装 `userscripts/mimo-usage.user.js`（Tampermonkey），打开套餐页后脚本把用量 JSON 和 Cookie 推到本机 `http://127.0.0.1:17321/mimo-usage`。Sticky 写入 `.mimo-session` 并立刻刷新 Mimo 行。脚本需要 Tampermonkey 的 `GM_cookie` 权限以读取 HttpOnly Cookie；不要把 Cookie 写进仓库。
+可选恢复：Chrome 打开 `chrome://extensions` → 开发者模式 →「加载已解压的扩展程序」→ 选 `chrome-extension/`。打开套餐页后，扩展用 `chrome.cookies` 读取 HttpOnly Cookie，把用量 JSON 推到本机 `http://127.0.0.1:17321/mimo-usage`。页面控制台过滤 `[StickyMimo]`。也可继续用 `userscripts/mimo-usage.user.js`（Tampermonkey）；不要把 Cookie 写进仓库。
 
 ## MiniMax 用量
 
